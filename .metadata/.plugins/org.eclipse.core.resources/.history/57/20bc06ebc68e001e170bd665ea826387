@@ -1,0 +1,59 @@
+package DGU;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.*;
+
+public class Grade_2019111679_023 extends JFrame {
+	private JTextField tf = new JTextField(10);
+	private Vector<String> v = new Vector<String>();
+	private JList<String> nameList = new JList<String>(v);
+	
+	public Grade_2019111679_023() {
+		setTitle("list change");
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		Container c = getContentPane();
+		c.setLayout(new FlowLayout());
+		
+		c.add(new JLabel("이름 입력 후 <Enter> 키"));
+		c.add(tf);
+		
+		v.add("사과");
+		v.add("배");
+		v.add("체리");
+		nameList.setVisibleRowCount(5);
+		nameList.setFixedCellWidth(100);
+		c.add(new JScrollPane(nameList));
+		
+		JButton deleteButton = new JButton("삭제"); // 삭제 버튼 추가
+		c.add(deleteButton);
+
+		setSize(300,300);
+		setVisible(true);
+		
+		// JTextField에 ActionListener 등록. <Enter> 키 처리
+		tf.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				JTextField t = (JTextField)e.getSource();
+				v.add(t.getText());
+				t.setText("");
+				nameList.setListData(v); // 리스트 데이터 업데이트
+			}
+		});
+
+		// 삭제 버튼에 ActionListener 등록
+		deleteButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if (!nameList.isSelectionEmpty()) { // 선택된 항목이 있는 경우
+					v.remove(nameList.getSelectedValue()); // 선택된 항목 삭제
+					nameList.setListData(v); // 리스트 데이터 업데이트
+				}
+			}
+		});
+	}
+	
+	public static void main(String[] args) {
+		new Grade_2019111679_023();
+	}
+}

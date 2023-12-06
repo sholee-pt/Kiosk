@@ -1,0 +1,453 @@
+package Kiosk;
+
+import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+
+import java.awt.*;
+import java.awt.event.*;
+import java.io.*;
+
+class OrderItem {
+    private String name;
+    private int quantity;
+    private int price;
+
+    public OrderItem(String name, int price) {
+        this.name = name;
+        this.price = price;
+        this.quantity = 0;
+    }
+
+    public void adjustQuantity(int amount) {
+        this.quantity += amount;
+        if (this.quantity < 0) {
+            this.quantity = 0;
+        }
+    }
+
+    public int getTotalPrice() {
+        return this.quantity * this.price;
+    }
+
+    public String toString() {
+        return name + " x " + quantity + "개 : " + getTotalPrice() + "원";
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
+}
+
+public class CafeKiosk {
+
+    private JFrame frame;
+    private JList<OrderItem> orderList;
+    private DefaultListModel<OrderItem> listModel;
+    private JLabel totalLabel;
+    private int totalPrice = 0;
+    private int orderNumber = 0;
+    
+    public CafeKiosk() {
+    	initializeOrderFile();
+        beforeKiosk();
+    }
+
+    private void beforeKiosk() {
+        JFrame loading = new JFrame("Initializing");
+        loading.setLayout(new BorderLayout());
+        JLabel loadingMsg = new JLabel("Loading... please wait", SwingConstants.CENTER);
+        loadingMsg.setFont(new Font("Arial", Font.BOLD, 20));
+        
+        // 진행 상태를 표시할 JProgressBar를 생성하고 설정합니다.
+        JProgressBar pbar = new JProgressBar();
+        pbar.setIndeterminate(true); // 진행 상태가 정해져 있지 않은 상태 표시
+
+        loading.add(loadingMsg, BorderLayout.CENTER);
+        loading.add(pbar, BorderLayout.SOUTH); // 프로그레스 바를 창의 아래쪽에 추가
+
+        loading.setSize(400, 150);
+        loading.setLocationRelativeTo(null); // 창이 중앙에 뜨도록 표시
+        loading.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        loading.setVisible(true);
+
+        // 타이머를 사용하여 몇 초 후에 로딩 창을 닫음
+        Timer timer = new Timer(1500, new ActionListener() { // 시간
+            public void actionPerformed(ActionEvent e) {
+                loading.dispose(); // 로딩 창 닫기
+                startKiosk(); // 키오스크 시작
+            }
+        });
+        timer.setRepeats(false); // 타이머가 한 번만 실행되도록 설정
+        timer.start();
+    }
+
+    private void startKiosk() {
+        frame = new JFrame("Cafe Kiosk");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(1024, 768);
+        frame.setLayout(new BorderLayout());
+        frame.getContentPane().setBackground(Color.WHITE);
+
+        int[][] prices = {{1700, 2300, 2500, 2700, 2000, 2500},
+                {3700, 3500, 3000, 3000, 3200, 3000, 2800},
+                {3800, 4500, 4200, 4100, 4000, 3700, 4000},
+                {5000, 5500, 5200, 4800, 4600}};
+        String[][] items = {{"아메리카노", "카라멜 마끼아또", "바닐라 라떼", "달고나 라떼", "카페 라떼", "카페 모카"},
+                {"트로피컬 에이드", "블루 에이드", "딸기 에이드", "블루베리 에이드", "자몽 에이드", "청포도 에이드", "유자 에이드"},
+                {"흑당 버블티", "달고나 버블티", "블랙 버블티", "얼그레이 버블티", "타로 버블티", "초콜릿 버블티", "마차 버블티"},
+                {"블루베리 요거트 스무디", "딸기 요거트 스무디", "망고 요거트 스무디", "코코넛 커피 스무디", "초코 칩 스무디"}};
+
+        // 각 분류별 탭 생성
+        JTabbedPane tab = new JTabbedPane();
+        String[] tabname = {"COFFEE", "ADE", "BUBBLE TEA", "SMOOTHIE"};
+        for (int i = 0; i < tabname.length; i++) {
+            JPanel categoryPanel = new JPanel(new GridLayout(0,4));
+            for (int j = 0; j < items[i].length; j++) {
+                createMenuItemPanel(items[i][j], prices[i][j], categoryPanel);
+            }
+            tab.addTab(tabname[i], new JScrollPane(categoryPanel));
+        }
+        
+        // ETC 탭 추가
+        JPanel etcPanel = new JPanel();
+        tab.addTab("ETC", new JScrollPane(etcPanel));
+        JSlider volume = new JSlider(JSlider.HORIZONTAL, 0, 100, 50);
+        
+        etcPanel.add(volume);
+        
+        transformImageSize transform = new transformImageSize();
+        ImageIcon originalLogo = new ImageIcon("c:\\Q202\\images\\Kiosk\\DGU.png");
+        ImageIcon logo = transform.transformImageSize(originalLogo, 300, 100);
+
+        // 조정된 이미지 아이콘을 레이블에 설정
+        JLabel imageLabel = new JLabel(logo);
+        imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
+        // 주문 목록 설정
+        listModel = new DefaultListModel<>();
+        orderList = new JList<>(listModel);
+        orderList.setFixedCellWidth(200); // 셀의 폭을 고정
+        orderList.setFixedCellHeight(30); // 셀의 높이를 고정
+        JScrollPane orderScrollPane = new JScrollPane(orderList);
+
+        JLabel orderListLabel = new JLabel("주문목록");
+        orderListLabel.setFont(new Font("맑은 고딕", Font.BOLD, 30));
+        orderListLabel.setAlignmentX(Component.CENTER_ALIGNMENT); // 레이블을 왼쪽 정렬
+
+        // 총 결제 금액 레이블 설정
+        totalLabel = new JLabel("결제 금액: 0원");
+        totalLabel.setFont(new Font("맑은 고딕", Font.BOLD, 20));
+        totalLabel.setAlignmentX(Component.LEFT_ALIGNMENT); // 금액 레이블을 왼쪽 정렬
+
+        // 수량 감소 버튼 생성
+        JButton delete = new JButton("주문취소");
+        delete.setFont(new Font("맑은 고딕", Font.PLAIN, 15));
+        delete.setAlignmentX(Component.CENTER_ALIGNMENT);
+        delete.setBackground(Color.WHITE);
+        
+        delete.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                // 선택된 주문 항목 가져오기
+                OrderItem selectedItem = orderList.getSelectedValue();
+                if (selectedItem != null) {
+                    // 선택된 항목의 수량 감소
+                    selectedItem.adjustQuantity(-1);
+                    // 수량이 0이 되면 목록에서 항목 제거
+                    if (selectedItem.getQuantity() <= 0) {
+                        listModel.removeElement(selectedItem);
+                    }
+                    updateTotalPrice(); // 총 금액 업데이트
+                    orderList.repaint(); // 주문 목록 UI 갱신
+                }
+            }
+        });
+        
+        // '전체 삭제' 버튼 생성
+        JButton clear = new JButton("초기화");
+        clear.setFont(new Font("맑은 고딕", Font.PLAIN, 15));
+        clear.setAlignmentX(Component.CENTER_ALIGNMENT);
+        clear.setBackground(Color.WHITE);
+        
+        // '초기화' 버튼에 대한 ActionListener 추가
+        clear.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                // 주문 목록에서 모든 항목을 삭제
+                resetOrderList();
+            }
+        });
+        
+        // 결제하기 버튼 설정
+        JButton purchase = new JButton("결제하기");
+        purchase.setFont(new Font("맑은 고딕", Font.BOLD, 20));
+        purchase.setAlignmentX(Component.CENTER_ALIGNMENT); // 버튼을 가운데 정렬
+        purchase.setBackground(Color.YELLOW);
+
+        purchase.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+               // 주문 목록에 아무것도 없으면 경고 메시지를 표시
+                if (listModel.getSize() == 0) {
+                    JOptionPane.showMessageDialog(frame, "주문목록에 상품이 없습니다.", "주문오류", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+               
+               // 결제 방식을 선택할 다이얼로그 생성
+               JDialog payment = new JDialog(frame, "결제 방식 선택", true);
+               payment.setSize(300, 150);
+               payment.setLayout(new GridLayout(0,2));
+
+               // 신용카드 결제 버튼 생성
+               JButton card = new JButton("신용카드");
+               card.setFont(new Font("맑은 고딕", Font.BOLD, 20));
+               card.addActionListener(new ActionListener() {
+                   public void actionPerformed(ActionEvent e) {
+                       // 영수증 창을 보여주는 메서드 호출
+                       showReceipt();
+                       payment.dispose(); // 창 닫기
+                       saveOrder();
+                       resetOrderList(); // 결제 후 주문 목록 초기화
+                   }
+                });
+
+                // 현금결제 버튼 생성
+                JButton cash = new JButton("현금결제");
+                cash.setFont(new Font("맑은 고딕", Font.BOLD, 20));
+                cash.addActionListener(new ActionListener() {
+                    public void actionPerformed(ActionEvent e) {
+                        // 영수증 창을 보여주는 메서드 호출
+                        showReceipt();
+                        payment.dispose();
+                        saveOrder();
+                        resetOrderList(); // 결제 후 주문 목록 초기화
+                    }
+                });
+
+                // 버튼을 다이얼로그에 추가
+                payment.add(card);
+                payment.add(cash);
+
+                // 다이얼로그를 화면 가운데에 표시
+                payment.setLocationRelativeTo(frame);
+
+                // 다이얼로그를 모달로 설정하여 다이얼로그 외의 부분 클릭 비활성화
+                payment.setModal(true);
+
+                // 다이얼로그를 표시
+                payment.setVisible(true);
+            }
+        });
+
+        // 주문 패널 설정 및 컴포넌트 추가
+        JPanel orderPanel = new JPanel();
+        orderPanel.setLayout(new BoxLayout(orderPanel, BoxLayout.Y_AXIS));
+        orderPanel.add(orderListLabel);
+        orderPanel.add(orderScrollPane);
+
+        // 버튼을 수평으로 배치하기 위한 새 패널을 생성합니다.
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.X_AXIS));
+        buttonPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50)); // 버튼 패널의 최대 높이를 설정합니다.
+
+        // 버튼 크기 조절을 위해 각 버튼을 개별 패널에 넣습니다.
+        JPanel deleteButtonPanel = new JPanel();
+        deleteButtonPanel.add(delete);
+        deleteButtonPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50)); // 버튼의 최대 높이를 설정합니다.
+        JPanel clearButtonPanel = new JPanel();
+        clearButtonPanel.add(clear);
+        clearButtonPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50)); // 버튼의 최대 높이를 설정합니다.
+
+        // 개별 패널을 버튼 패널에 추가합니다.
+        buttonPanel.add(deleteButtonPanel);
+        buttonPanel.add(clearButtonPanel);
+
+        // 주문 패널에 버튼 패널을 추가
+        orderPanel.add(buttonPanel);
+
+        // 총 결제 금액 레이블을 담을 패널 생성
+        JPanel totalLabelPanel = new JPanel();
+        totalLabelPanel.add(totalLabel);
+        totalLabelPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+        orderPanel.add(totalLabelPanel);
+
+        // 주문 패널에 결제 버튼을 추가
+        orderPanel.add(purchase);
+
+        // 프레임에 컴포넌트들 추가
+        frame.add(imageLabel, BorderLayout.NORTH);
+        frame.add(tab, BorderLayout.CENTER);
+        frame.add(orderPanel, BorderLayout.EAST);
+        frame.setVisible(true);
+    }
+
+    private void createMenuItemPanel(String item, int price, JPanel panel) {        
+        transformImageSize trans = new transformImageSize();
+        ImageIcon originalIcon = new ImageIcon("C:\\Q202\\images\\Kiosk\\" + item + ".png");
+        ImageIcon icon = trans.transformImageSize(originalIcon, 120, 200);
+
+        // 이미지 버튼 생성
+        JButton imageButton = new JButton(icon);
+        //imageButton.setBorder(BorderFactory.createEmptyBorder());
+        imageButton.setContentAreaFilled(false);
+        imageButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        // 메뉴 레이블
+        JLabel menu = new JLabel(item);
+        menu.setFont(new Font("맑은 고딕", Font.BOLD, 15));
+        menu.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        // 가격 레이블
+        JLabel won = new JLabel(price + "원");
+        won.setFont(new Font("맑은 고딕", Font.BOLD, 15));
+        won.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        // 이미지 버튼에 액션 리스너 추가
+        imageButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                // 주문 목록에 항목 추가
+                OrderItem orderItem = findOrderItemByName(item);
+                if (orderItem == null) {
+                    // 새 항목을 주문 목록에 추가
+                    orderItem = new OrderItem(item, price);
+                    listModel.addElement(orderItem);
+                }
+                // 항목의 수량 조절
+                orderItem.adjustQuantity(1);
+                updateTotalPrice();
+                // UI 갱신
+                orderList.repaint();
+            }
+        });
+
+        // 메뉴 항목 패널에 BoxLayout 설정
+        JPanel itemPanel = new JPanel();
+        itemPanel.setLayout(new BoxLayout(itemPanel, BoxLayout.Y_AXIS));
+
+        // 컴포넌트들을 메뉴 항목 패널에 추가
+        itemPanel.add(imageButton);
+        itemPanel.add(menu);
+        itemPanel.add(won);
+
+        // 완성된 메뉴 항목 패널을 메뉴 패널에 추가
+        panel.add(itemPanel);
+    }
+
+    private OrderItem findOrderItemByName(String itemName) {
+	    for (int i = 0; i < listModel.size(); i++) {
+	        OrderItem item = listModel.get(i);
+	        if (item.getName().equals(itemName)) {
+	            return item;
+	        }
+	    }
+	    return null; // 찾지 못했으면 null 반환
+	}
+
+	private void updateTotalPrice() {
+        totalPrice = 0;
+        for (int i = 0; i < listModel.size(); i++) {
+            OrderItem item = listModel.get(i);
+            totalPrice += item.getTotalPrice();
+        }
+        totalLabel.setText("결제 금액: " + totalPrice + "원");
+    }
+
+   // 결제 후 영수증을 보여주는 메서드
+    private void showReceipt() {
+        orderNumber++; // 주문 번호 증가
+
+        JDialog receiptf = new JDialog(frame, "영수증");
+        receiptf.setSize(300, 400);
+        receiptf.setLayout(new BorderLayout());
+
+        JTextArea receipt = new JTextArea();
+        receipt.setEditable(false);
+        receipt.setFont(new Font("맑은 고딕", Font.PLAIN, 12));
+
+        StringBuilder text = new StringBuilder();
+        text.append("주문(대기)번호: ").append(orderNumber).append("\n");
+        text.append("-----------------------------------\n");
+        for (int i = 0; i < listModel.size(); i++) {
+            OrderItem item = listModel.get(i);
+            text.append(item.toString()).append("\n");
+        }
+        text.append("-----------------------------------\n");
+        text.append("총 금액: ").append(totalPrice).append("원\n");
+        text.append("\n");
+        text.append("이용해주셔서 감사합니다.");
+        
+        receipt.setText(text.toString());
+        receiptf.add(new JScrollPane(receipt), BorderLayout.CENTER);
+        receiptf.setLocationRelativeTo(frame);
+        receiptf.setVisible(true);
+    }
+    
+    private void resetOrderList() {
+        listModel.clear(); // 주문 리스트 모델을 비움
+        totalPrice = 0; // 총 금액을 0으로 초기화
+        totalLabel.setText("결제 금액: " + totalPrice + "원"); // 금액 레이블 업데이트
+        orderList.repaint(); // 주문 목록 UI 갱신
+    }
+    
+    // 애플리케이션 시작 시 주문 파일을 초기화하는 메서드
+   private void initializeOrderFile() {
+       String csvFilePath = "c:\\Q202\\files\\orders.csv";
+       File file = new File(csvFilePath);
+   
+       // 파일이 이미 존재한다면 삭제
+       if (file.exists()) {
+           file.delete();
+       }
+   
+       // 새로운 헤더와 함께 파일을 생성
+       try (FileWriter writer = new FileWriter(csvFilePath)) {
+           writer.write("주문번호,상품명,수량,가격\n");
+       } catch (IOException e) {
+           e.printStackTrace();
+       }
+   }
+
+   private void saveOrder() {
+        String fpath = "c:\\Q202\\files\\orders.csv";
+        // 파일에 새로운 주문을 추가합니다.
+        try (FileWriter writer = new FileWriter(fpath, true)) {
+            // 주문 내역을 CSV 형식으로 파일에 작성합니다.
+            for (int i = 0; i < listModel.size(); i++) {
+                OrderItem item = listModel.get(i);
+                writer.append(orderNumber + "," + item.getName() + "," + item.getQuantity() + "," + item.getTotalPrice() + "\n");
+            }
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(frame, "저장실패", "오류", JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
+    }
+
+    private JSlider volumeSlider() {
+        JSlider volumeSlider = new JSlider(JSlider.HORIZONTAL, 0, 100, 20);
+        volumeSlider.setMajorTickSpacing(10);
+        volumeSlider.setPaintTicks(true);
+        volumeSlider.setPaintLabels(true);
+
+        volumeSlider.addChangeListener(new ChangeListener() {
+            public void stateChanged(ChangeEvent e) {
+                if (!volumeSlider.getValueIsAdjusting()) {
+                    int volume = volumeSlider.getValue();
+                    setVolume(volume);
+                }
+            }
+        });
+        return volumeSlider;
+    }
+    
+    private void setVolume(int volume) {
+        // 볼륨 조절을 위한 실제 로직을 여기에 구현합니다.
+        // 예: 배경음악 재생을 담당하는 객체의 볼륨을 조절
+    }
+
+    public static void main(String[] args) {
+       System.out.println("Kiosk project made by 2019111679_LeeSeungHo\nv1.0");
+       new CafeKiosk();   
+        }
+}

@@ -1,0 +1,65 @@
+package DGU;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.Scanner;
+
+public class Grade_2019111679_026 extends JFrame {
+    JLabel label; // JLabel 선언
+    JButton btn; // JButton 선언
+
+    public Grade_2019111679_026() {
+    	Scanner sc = new Scanner(System.in);
+    	
+        setTitle("Image button");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        Container c = getContentPane();
+        c.setLayout(new FlowLayout()); // FlowLayout 사용
+        
+        
+        System.out.print("Enter image width: ");
+        int w = sc.nextInt();
+        System.out.print("Enter image height: ");
+        int h = sc.nextInt();
+
+        ImageIcon normal = new ImageIcon("c:\\Q202\\images\\apple.png");
+        ImageIcon rollover = new ImageIcon("c:\\Q202\\images\\apple.png");
+        ImageIcon pressed = new ImageIcon("c:\\Q202\\images\\appleB.png");
+
+        // transformImageSize 인스턴스 생성 및 메소드 호출
+        transformImageSize transformer = new transformImageSize();
+        ImageIcon resizedNormal = transformer.transformImageSize(normal, width, height);
+        ImageIcon resizedPressed = transformer.transformImageSize(pressed, width, height);
+        ImageIcon resizedRollover = transformer.transformImageSize(rollover, width, height);
+
+        btn = new JButton("apple", resizedNormal);
+        btn.setPressedIcon(resizedPressed);
+        btn.setRolloverIcon(resizedRollover);
+
+        label = new JLabel("Apple Button Pressed");
+        label.setVisible(false);
+
+        c.add(btn);
+        c.add(label);
+
+        btn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                label.setVisible(true);
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                label.setVisible(false);
+            }
+        });
+
+        setSize(250, 150);
+        setVisible(true);
+    }
+
+    public static void main(String[] args) {
+        new Grade_2019111679_026();
+    }
+}

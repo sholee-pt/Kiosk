@@ -1,0 +1,83 @@
+package DGU;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.io.File;
+
+public class Grade_2019111679_024 extends JFrame {
+    private JTextField tf = new JTextField(10);
+    private JComboBox<String> strCombo = new JComboBox<String>();
+    private JLabel imgLabel = new JLabel();
+    private int imageWidth = 100; // 이미지의 초기 가로 크기
+    private int imageHeight = 100; // 이미지의 초기 세로 크기
+    private JButton deleteButton = new JButton("삭제");
+
+    public Grade_2019111679_024() {
+        setTitle("Integrated Grade Program");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        Container c = getContentPane();
+        c.setLayout(new FlowLayout());
+
+        c.add(new JLabel("과일 이름 입력 후 <Enter> 키"));
+        c.add(tf);
+        c.add(strCombo);
+        c.add(imgLabel);
+        c.add(deleteButton); // 삭제 버튼 추가
+
+        tf.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                JTextField t = (JTextField)e.getSource();
+                String input = t.getText().trim(); // 입력된 텍스트 양 끝의 공백 제거
+                if (!input.isEmpty()) { // 입력된 텍스트가 비어 있지 않으면
+                    strCombo.addItem(input); // 콤보 박스에 아이템 추가
+                    t.setText(""); // 텍스트 필드 초기화
+                    updateImage(input); // 이미지 업데이트
+                }
+            }
+        });
+
+        deleteButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                int selectedIndex = strCombo.getSelectedIndex();
+                if (selectedIndex != -1) { // 선택된 항목이 있는 경우
+                    strCombo.removeItemAt(selectedIndex); // 선택된 항목 제거
+                    imgLabel.setIcon(null); // 이미지 레이블 초기화
+                }
+            }
+        });
+
+        setSize(350, 400);
+        setVisible(true);
+    }
+
+    // 이미지 업데이트 메서드
+    private void updateImage(String input) {
+        // 입력된 과일 이름에 해당하는 이미지 로드 및 크기 조정
+        String imagePath = "c:\\Q202\\images\\" + input + ".png";
+        ImageIcon imageIcon = new ImageIcon(imagePath);
+        if (imageIcon.getImage() != null) { // 이미지가 로딩되었는지 확인
+            // 이미지 크기 조정
+            imageIcon = transformImageSize(imageIcon, imageWidth, imageHeight);
+            imgLabel.setIcon(imageIcon);
+        } else {
+            imgLabel.setIcon(null);
+            JOptionPane.showMessageDialog(
+                null,
+                "이미지를 로드할 수 없습니다.",
+                "에러",
+                JOptionPane.ERROR_MESSAGE
+            );
+        }
+    }
+
+    // 이미지 크기 조정 메서드
+    private ImageIcon transformImageSize(ImageIcon icon, int width, int height) {
+        // transformImageSize 클래스의 메서드 사용
+        return new transformImageSize().transformImageSize(icon, width, height);
+    }
+
+    public static void main(String[] args) {
+        new Grade_2019111679_024();
+    }
+}

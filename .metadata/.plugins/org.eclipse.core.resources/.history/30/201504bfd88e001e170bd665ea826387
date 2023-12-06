@@ -1,0 +1,69 @@
+package DGU;
+
+import javax.swing.*;
+import javax.swing.event.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+public class Grade_2019111679_027 extends JFrame {
+    JLabel colorLabel;
+    JSlider[] sl = new JSlider[3];
+    JButton resetButton; // 초기화 버튼 추가
+
+    public Grade_2019111679_027() {
+        setTitle("slider");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        Container c = getContentPane();
+        c.setLayout(new FlowLayout());
+
+        colorLabel = new JLabel("SLIDER EXAMPLE");
+        for (int i = 0; i < sl.length; i++) {
+            sl[i] = new JSlider(JSlider.HORIZONTAL, 0, 255, 128);
+            sl[i].setPaintLabels(true);
+            sl[i].setPaintTicks(true);
+            sl[i].setPaintTrack(true);
+            sl[i].setMajorTickSpacing(50);
+            sl[i].setMinorTickSpacing(10);
+            sl[i].addChangeListener(new MyChangeListener());
+            c.add(sl[i]);
+        }
+
+        sl[0].setForeground(Color.RED);
+        sl[1].setForeground(Color.GREEN);
+        sl[2].setForeground(Color.BLUE);
+
+        colorLabel.setOpaque(true);
+        colorLabel.setBackground(new Color(128, 128, 128));
+        c.add(colorLabel);
+
+        // 초기화 버튼 추가
+        resetButton = new JButton("초기화");
+        resetButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                for (JSlider slider : sl) {
+                    slider.setValue(128); // 모든 슬라이더를 초기값으로 설정
+                }
+                colorLabel.setBackground(new Color(128, 128, 128)); // 라벨 배경색 초기화
+            }
+        });
+        c.add(resetButton);
+
+        setSize(300, 230);
+        setVisible(true);
+    }
+
+    class MyChangeListener implements ChangeListener {
+        public void stateChanged(ChangeEvent e) {
+            int r = sl[0].getValue();
+            int g = sl[1].getValue();
+            int b = sl[2].getValue();
+            colorLabel.setBackground(new Color(r, g, b));
+        }
+    }
+
+    public static void main(String[] args) {
+        new Grade_2019111679_027();
+    }
+}

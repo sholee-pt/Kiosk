@@ -1,0 +1,16 @@
+package Kiosk;
+
+import javax.swing.*;
+import java.awt.*;
+
+public class transformImageSize {
+	public ImageIcon transformImageSize(ImageIcon imageIcon, int x, int y) {
+        if(x<=0 || y<=0) {
+        	throw new IllegalArgumentException("이미지의 가로, 세로 길이는 0보다 커야합니다.");
+        }
+		Image image = imageIcon.getImage();
+        Image scaledInstance = image.getScaledInstance(x, y, Image.SCALE_SMOOTH);
+        ImageIcon newImageIcon = new ImageIcon(scaledInstance);
+        return newImageIcon;
+    }
+}
