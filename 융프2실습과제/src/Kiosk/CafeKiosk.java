@@ -29,7 +29,7 @@ public class CafeKiosk {
     // 키오스크 시작 전 로딩 화면 구성
     private void beforeKiosk() {
         // 로딩 화면 구성
-        JFrame loading = new JFrame("실행중");
+        JFrame loading = new JFrame("Initializing...");
         loading.setLayout(new BorderLayout());
         JLabel loadingMsg = new JLabel("Loading... please wait", SwingConstants.CENTER);
         loadingMsg.setFont(new Font("Arial", Font.BOLD, 20));
